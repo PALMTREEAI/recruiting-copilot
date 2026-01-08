@@ -1,0 +1,25 @@
+# Web framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# HTTP client for API calls
+httpx==0.26.0
+
+# Email sending
+resend==0.7.0
+
+# Claude AI
+anthropic==0.18.1
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Data handling
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Date/time handling
+python-dateutil==2.8.2
+
+# For scheduled jobs (cron)
+apscheduler==3.10.4

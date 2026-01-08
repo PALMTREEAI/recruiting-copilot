@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruiting Co-Pilot</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+        }
+
+        header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: #e8e8e8;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .panel {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        /* Chat Panel */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            margin-left: auto;
+        }
+
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .message.user .message-label {
+            text-align: right;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            padding: 14px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .send-btn:hover {
+            background: #5a6fd6;
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Gem Input Panel */
+        .gem-form {
+            max-width: 800px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #444;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: #667eea;
+        }
+
+        .sequence-inputs {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .sequence-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 80px 80px 80px 80px 40px;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .sequence-row input, .sequence-row select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .sequence-row input[type="number"] {
+            text-align: center;
+        }
+
+        .remove-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .add-sequence-btn {
+            background: #e8e8e8;
+            border: 2px dashed #ccc;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .add-sequence-btn:hover {
+            background: #ddd;
+        }
+
+        .submit-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .submit-btn:hover {
+            background: #5a6fd6;
+        }
+
+        /* Activities Panel */
+        .activities-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .activities-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .activities-section h3 {
+            margin-bottom: 15px;
+            color: #444;
+            font-size: 16px;
+        }
+
+        .activity-item {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .activity-item.high {
+            border-left-color: #ff4757;
+        }
+
+        .activity-item.medium {
+            border-left-color: #ffa502;
+        }
+
+        .activity-item.low {
+            border-left-color: #2ed573;
+        }
+
+        .activity-category {
+            font-size: 11px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .activity-action {
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* Pipeline Panel */
+        .pipeline-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .pipeline-card {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .pipeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .pipeline-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .health-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .health-badge.green {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .health-badge.yellow {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .health-badge.red {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .pipeline-stages {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .stage-count {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .stage-arrow {
+            color: #ccc;
+        }
+
+        .pipeline-metric {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        /* Utility */
+        .refresh-btn {
+            background: #e8e8e8;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .refresh-btn:hover {
+            background: #ddd;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .quick-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .quick-question {
+            background: #f0f0f0;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .quick-question:hover {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Recruiting Co-Pilot</h1>
+            <p>Your AI-powered recruiting assistant</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" data-panel="chat">💬 Chat</button>
+            <button class="tab" data-panel="activities">📋 Today's Activities</button>
+            <button class="tab" data-panel="pipeline">🎯 Pipeline</button>
+            <button class="tab" data-panel="gem">📧 Add Gem Data</button>
+        </div>
+
+        <!-- Chat Panel -->
+        <div id="chat" class="panel active">
+            <div class="quick-questions">
+                <button class="quick-question" data-question="What's the status of my pipeline?">Pipeline status?</button>
+                <button class="quick-question" data-question="Who should I screen today?">Who to screen?</button>
+                <button class="quick-question" data-question="Which candidates are stuck?">Stuck candidates?</button>
+                <button class="quick-question" data-question="What should Blessing focus on this week?">Blessing's focus?</button>
+                <button class="quick-question" data-question="What's our biggest bottleneck right now?">Biggest bottleneck?</button>
+            </div>
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant">
+                        <div class="message-label">Co-Pilot</div>
+                        <div class="message-content">
+                            Hi Drew! I'm your recruiting co-pilot. Ask me anything about your pipeline, candidates, or sourcing priorities. Try one of the quick questions above or ask your own!
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="Ask about your pipeline..." />
+                    <button class="send-btn" id="sendBtn">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activities Panel -->
+        <div id="activities" class="panel">
+            <button class="refresh-btn" onclick="loadActivities()">🔄 Refresh Activities</button>
+            <div id="activitiesContent" class="loading">Loading activities...</div>
+        </div>
+
+        <!-- Pipeline Panel -->
+        <div id="pipeline" class="panel">
+            <button class="refresh-btn" onclick="loadPipeline()">🔄 Refresh Pipeline</button>
+            <div id="pipelineContent" class="loading">Loading pipeline...</div>
+        </div>
+
+        <!-- Gem Data Input Panel -->
+        <div id="gem" class="panel">
+            <h2 style="margin-bottom: 20px;">📧 Add Gem Sourcing Data</h2>
+            <p style="color: #666; margin-bottom: 20px;">Enter your sequence stats to track trends and get smarter recommendations.</p>
+
+            <div id="gemMessage"></div>
+
+            <form class="gem-form" id="gemForm">
+                <div class="form-group">
+                    <label>Snapshot Date</label>
+                    <input type="date" id="snapshotDate" />
+                </div>
+
+                <label style="display: block; margin-bottom: 10px; font-weight: 500;">Sequence Stats</label>
+                <div class="sequence-inputs" id="sequenceInputs">
+                    <div class="sequence-row" style="font-weight: 500; font-size: 12px; color: #888;">
+                        <div>Sequence Name</div>
+                        <div>Role</div>
+                        <div>Sender</div>
+                        <div>Sent</div>
+                        <div>Opened</div>
+                        <div>Replied</div>
+                        <div>Bounced</div>
+                        <div></div>
+                    </div>
+                    <!-- Sequence rows will be added here -->
+                </div>
+
+                <button type="button" class="add-sequence-btn" onclick="addSequenceRow()">+ Add Sequence</button>
+
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <input type="text" id="gemNotes" placeholder="Any notes about this week's sourcing..." />
+                </div>
+
+                <button type="submit" class="submit-btn">Save Gem Data</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.panel).classList.add('active');
+
+                // Load data when switching to certain tabs
+                if (tab.dataset.panel === 'activities') loadActivities();
+                if (tab.dataset.panel === 'pipeline') loadPipeline();
+            });
+        });
+
+        // Quick questions
+        document.querySelectorAll('.quick-question').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('chatInput').value = btn.dataset.question;
+                sendMessage();
+            });
+        });
+
+        // Chat functionality
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, 'user');
+            chatInput.value = '';
+            sendBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+                addMessage(data.response || data.error || 'Sorry, something went wrong.', 'assistant');
+            } catch (error) {
+                addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+            }
+
+            sendBtn.disabled = false;
+        }
+
+        function addMessage(content, role) {
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+            div.innerHTML = `
+                <div class="message-label">${role === 'user' ? 'You' : 'Co-Pilot'}</div>
+                <div class="message-content">${content.replace(/\n/g, '<br>')}</div>
+            `;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Load activities
+        async function loadActivities() {
+            const container = document.getElementById('activitiesContent');
+            container.innerHTML = '<div class="loading">Loading activities...</div>';
+
+            try {
+                const response = await fetch('/api/activities');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    const activities = data.data;
+                    container.innerHTML = `
+                        <div class="activities-grid">
+                            <div class="activities-section">
+                                <h3>👤 Drew's Priorities</h3>
+                                ${activities.drew.map(a => `
+                                    <div class="activity-item ${a.priority}">
+                                        <div class="activity-category">${a.icon} ${a.category}</div>
+                                        <div class="activity-action">${a.action}</div>
+                                    </div>
+                                `).join('') || '<p style="color: #888;">No activities right now</p>'}
+                            </div>
+                            <div class="activities-section">
+                                <h3>📋 Blessing's Priorities</h3>
+                                ${activities.blessing.map(a => `
+                                    <div class="activity-item ${a.priority}">
+                                        <div class="activity-category">${a.icon} ${a.category}</div>
+                                        <div class="activity-action">${a.action}</div>
+                                    </div>
+                                `).join('') || '<p style="color: #888;">No activities right now</p>'}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '<div class="error-message">Failed to load activities</div>';
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="error-message">Failed to load activities</div>';
+            }
+        }
+
+        // Load pipeline
+        async function loadPipeline() {
+            const container = document.getElementById('pipelineContent');
+            container.innerHTML = '<div class="loading">Loading pipeline...</div>';
+
+            try {
+                const response = await fetch('/api/pipeline');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    const pipeline = data.data;
+                    container.innerHTML = `
+                        <div class="pipeline-cards">
+                            ${pipeline.roles.map(role => `
+                                <div class="pipeline-card">
+                                    <div class="pipeline-header">
+                                        <span class="pipeline-title">${role.job_title} (P${role.priority})</span>
+                                        <span class="health-badge ${role.health_status}">${role.health_status.toUpperCase()}</span>
+                                    </div>
+                                    <div class="pipeline-stages">
+                                        ${role.stages.map((s, i) => `
+                                            <span class="stage-count" title="${s.name}">${s.count}</span>
+                                            ${i < role.stages.length - 1 ? '<span class="stage-arrow">→</span>' : ''}
+                                        `).join('')}
+                                    </div>
+                                    <div class="pipeline-metric">📊 Gap to hire: ~${role.gap_to_hire} screens needed</div>
+                                    <div class="pipeline-metric">👥 Active candidates: ${role.total_candidates}</div>
+                                    ${role.bottleneck ? `<div class="pipeline-metric" style="color: #dc3545;">⚠️ Bottleneck: ${role.bottleneck}</div>` : ''}
+                                    ${role.stuck_candidates.length > 0 ? `
+                                        <div class="pipeline-metric" style="color: #ffc107;">
+                                            ⏰ ${role.stuck_candidates.length} stuck candidate(s)
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <p style="margin-top: 20px; color: #888; font-size: 13px;">
+                            Last updated: ${new Date(pipeline.generated_at).toLocaleString()}
+                        </p>
+                    `;
+                } else {
+                    container.innerHTML = '<div class="error-message">Failed to load pipeline</div>';
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="error-message">Failed to load pipeline</div>';
+            }
+        }
+
+        // Gem form
+        const defaultSequences = [
+            { name: 'Fonzi - Sr. Full Stack Engineer - Drew', role: 'Full Stack', sender: 'Drew' },
+            { name: 'Fonzi - Fullstack Engineer - Blessing', role: 'Full Stack', sender: 'Blessing' },
+            { name: 'Fonzi - Sr. AI Engineer - Drew', role: 'AI Engineer', sender: 'Drew' },
+            { name: 'Fonzi - Sr. AI Engineer - Blessing (as Drew)', role: 'AI Engineer', sender: 'Blessing' },
+        ];
+
+        function addSequenceRow(seq = {}) {
+            const container = document.getElementById('sequenceInputs');
+            const row = document.createElement('div');
+            row.className = 'sequence-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Sequence name" value="${seq.name || ''}" class="seq-name" />
+                <select class="seq-role">
+                    <option value="Full Stack" ${seq.role === 'Full Stack' ? 'selected' : ''}>Full Stack</option>
+                    <option value="AI Engineer" ${seq.role === 'AI Engineer' ? 'selected' : ''}>AI Engineer</option>
+                </select>
+                <select class="seq-sender">
+                    <option value="Drew" ${seq.sender === 'Drew' ? 'selected' : ''}>Drew</option>
+                    <option value="Blessing" ${seq.sender === 'Blessing' ? 'selected' : ''}>Blessing</option>
+                </select>
+                <input type="number" placeholder="0" value="${seq.sent || 0}" class="seq-sent" min="0" />
+                <input type="number" placeholder="0" value="${seq.opened || 0}" class="seq-opened" min="0" />
+                <input type="number" placeholder="0" value="${seq.replied || 0}" class="seq-replied" min="0" />
+                <input type="number" placeholder="0" value="${seq.bounced || 0}" class="seq-bounced" min="0" />
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove()">×</button>
+            `;
+            container.appendChild(row);
+        }
+
+        // Initialize with default sequences
+        defaultSequences.forEach(seq => addSequenceRow(seq));
+
+        // Set default date to today
+        document.getElementById('snapshotDate').valueAsDate = new Date();
+
+        // Handle form submission
+        document.getElementById('gemForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const sequences = [];
+            document.querySelectorAll('.sequence-row:not(:first-child)').forEach(row => {
+                const name = row.querySelector('.seq-name').value.trim();
+                if (name) {
+                    sequences.push({
+                        sequence_name: name,
+                        role: row.querySelector('.seq-role').value,
+                        sender: row.querySelector('.seq-sender').value,
+                        sent: parseInt(row.querySelector('.seq-sent').value) || 0,
+                        opened: parseInt(row.querySelector('.seq-opened').value) || 0,
+                        replied: parseInt(row.querySelector('.seq-replied').value) || 0,
+                        bounced: parseInt(row.querySelector('.seq-bounced').value) || 0,
+                    });
+                }
+            });
+
+            const data = {
+                snapshot_date: document.getElementById('snapshotDate').value,
+                sequences: sequences,
+                notes: document.getElementById('gemNotes').value,
+            };
+
+            const msgDiv = document.getElementById('gemMessage');
+
+            try {
+                const response = await fetch('/api/gem/snapshot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    msgDiv.innerHTML = `
+                        <div class="success-message">
+                            ✅ Saved! ${result.sequences_saved} sequences recorded for ${result.snapshot_date}.
+                            Total: ${result.totals.sent} sent, ${result.totals.replied} replies (${(result.totals.reply_rate * 100).toFixed(1)}% rate)
+                        </div>
+                    `;
+                } else {
+                    msgDiv.innerHTML = `<div class="error-message">Error: ${result.detail || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                msgDiv.innerHTML = `<div class="error-message">Failed to save data. Please try again.</div>`;
+            }
+        });
+    </script>
+</body>
+</html>

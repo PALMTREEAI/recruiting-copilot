@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruiting Co-Pilot</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Recruiting Co-Pilot</h1>
+            <p>Ask me about your pipeline</p>
+        </header>
+
+        <main>
+            <div class="chat-container">
+                <div id="chatHistory" class="chat-history">
+                    <div class="message assistant">
+                        <p>Hi Drew! I'm your Recruiting Co-Pilot. Ask me about your pipeline status, stuck candidates, sourcing priorities, or anything else about your roles. I'll pull the latest data and give you an answer.</p>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="chatInput" 
+                            placeholder="What's the status on GTM Engineer?"
+                            autocomplete="off"
+                        >
+                        <button id="sendBtn">Send</button>
+                    </div>
+                    <button id="refreshBtn" class="refresh-btn">Refresh Data</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

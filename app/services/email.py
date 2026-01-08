@@ -1,12 +1,81 @@
 import resend
 import httpx
+import anthropic
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Optional
 from app.config import get_settings
 from app.models.recruiting import PipelineSnapshot, RolePipeline
 from app.services.recommendations import get_daily_activities
 
 settings = get_settings()
+
+
+async def generate_ai_insights(snapshot: PipelineSnapshot) -> Optional[str]:
+    """
+    Generate AI-powered insights using Claude Opus 4.5.
+
+    Analyzes the pipeline data and provides personalized, strategic recommendations.
+    """
+    if not settings.anthropic_api_key or settings.anthropic_api_key == "your_anthropic_api_key_here":
+        return None
+
+    # Build context from pipeline data
+    pipeline_context = []
+    total_candidates = 0
+    total_gap = 0
+
+    for role in snapshot.roles:
+        stages_str = " → ".join([f"{s.name}: {s.count}" for s in role.stages])
+        stuck_list = [f"{c.name} ({c.current_stage}, {c.days_in_stage}d)" for c in role.stuck_candidates]
+
+        pipeline_context.append(f"""
+Role: {role.job_title} (Priority {role.priority})
+Health: {role.health_status.upper()}
+Pipeline: {stages_str}
+Gap to hire: {role.gap_to_hire} more screens needed
+Bottleneck: {role.bottleneck or 'None'}
+Stuck candidates: {', '.join(stuck_list) if stuck_list else 'None'}
+""")
+        total_candidates += role.total_candidates
+        total_gap += role.gap_to_hire
+
+    prompt = f"""You are an expert recruiting strategist analyzing Drew's pipeline at Fonzi, an AI startup.
+
+Today is {datetime.now().strftime("%A, %B %d, %Y")}.
+
+Drew is an internal recruiter who manages screens and moves candidates through the pipeline.
+Blessing is the sourcer who handles ~120 LinkedIn/Gem outreaches per week.
+Drew has ADHD and needs help staying focused on high-leverage work.
+
+CURRENT PIPELINE DATA:
+{''.join(pipeline_context)}
+
+TOTALS: {total_candidates} active candidates | {total_gap} screens needed to make hires
+
+Based on this data, provide a brief strategic insight (3-4 sentences max) that:
+1. Identifies the most critical issue or opportunity Drew should focus on TODAY
+2. Gives ONE specific, actionable recommendation
+3. Is direct and cuts through the noise - no fluff
+
+Write in second person ("You should..."). Be concise and urgent where appropriate.
+Do NOT use bullet points or headers - write in flowing prose.
+Do NOT repeat the data I gave you - analyze it and give insight."""
+
+    try:
+        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+
+        response = client.messages.create(
+            model="claude-opus-4-5-20251101",
+            max_tokens=300,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        return response.content[0].text.strip()
+    except Exception as e:
+        print(f"AI insights generation failed: {e}")
+        return None
 
 # AI Recruiting news sources - curated list of high-quality sources
 AI_RECRUITING_SOURCES = [
@@ -185,7 +254,8 @@ def format_digest_email(
     snapshot: PipelineSnapshot,
     activities: dict = None,
     sourcing_actions: list = None,
-    news_items: list = None
+    news_items: list = None,
+    ai_insights: str = None
 ) -> str:
     """Format the daily digest email content."""
     date_str = snapshot.generated_at.strftime("%B %d, %Y")
@@ -196,6 +266,16 @@ def format_digest_email(
     lines.append("")
     lines.append("Good morning! Here's your recruiting dashboard for today.")
     lines.append("")
+
+    # AI-powered insights section (if available)
+    if ai_insights:
+        lines.append("━" * 50)
+        lines.append("")
+        lines.append("🧠 AI STRATEGIC INSIGHT (powered by Claude Opus)")
+        lines.append("")
+        lines.append(ai_insights)
+        lines.append("")
+
     lines.append("━" * 50)
     lines.append("")
     lines.append("🎯 FULL PIPELINE REPORT")
@@ -396,7 +476,8 @@ def format_html_digest(
     snapshot: PipelineSnapshot,
     activities: dict = None,
     sourcing_actions: list = None,
-    news_items: list = None
+    news_items: list = None,
+    ai_insights: str = None
 ) -> str:
     """Format the daily digest as HTML email."""
     date_str = snapshot.generated_at.strftime("%B %d, %Y")
@@ -405,6 +486,17 @@ def format_html_digest(
     # Calculate totals
     total_candidates = sum(role.total_candidates for role in snapshot.roles)
     total_gap = sum(role.gap_to_hire for role in snapshot.roles)
+
+    # Build AI insights section if available
+    ai_insights_html = ""
+    if ai_insights:
+        ai_insights_html = f"""
+            <h2>🧠 AI Strategic Insight</h2>
+            <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-left: none;">
+                <p style="font-size: 15px; line-height: 1.7; margin: 0;">{ai_insights}</p>
+                <p style="font-size: 12px; margin-top: 12px; opacity: 0.8;">— Powered by Claude Opus 4.5</p>
+            </div>
+        """
 
     html = f"""
     <html>
@@ -446,6 +538,8 @@ def format_html_digest(
         <div class="container">
             <h1>📊 Recruiting Daily Brief — {day_name}, {date_str}</h1>
             <p class="greeting">Good morning! Here's your recruiting dashboard for today.</p>
+
+            {ai_insights_html}
 
             <h2>🎯 Full Pipeline Report</h2>
             <div class="section">
@@ -609,6 +703,9 @@ async def send_digest_email(snapshot: PipelineSnapshot) -> dict:
     date_str = snapshot.generated_at.strftime("%B %d, %Y")
     day_name = snapshot.generated_at.strftime("%A")
 
+    # Generate AI-powered insights using Opus 4.5
+    ai_insights = await generate_ai_insights(snapshot)
+
     # Generate smart activity recommendations
     activities = get_daily_activities(snapshot)
 
@@ -619,8 +716,8 @@ async def send_digest_email(snapshot: PipelineSnapshot) -> dict:
     news_items = await fetch_ai_recruiting_news()
 
     # Format email content with all data
-    text_content = format_digest_email(snapshot, activities, sourcing_actions, news_items)
-    html_content = format_html_digest(snapshot, activities, sourcing_actions, news_items)
+    text_content = format_digest_email(snapshot, activities, sourcing_actions, news_items, ai_insights)
+    html_content = format_html_digest(snapshot, activities, sourcing_actions, news_items, ai_insights)
 
     # Send via Resend
     result = resend.Emails.send({
